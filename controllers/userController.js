@@ -1,5 +1,6 @@
 const User = require('../models/User');
 const bcrypt = require('bcrypt');
+const mongoose = require('mongoose'); // Add this line
 
 // Create user
 exports.createUser = async (req, res) => {
@@ -23,6 +24,11 @@ exports.createUser = async (req, res) => {
 exports.updateUser = async (req, res) => {
   const { userId } = req.params;
   const { username, email, password } = req.body;
+
+  // Validate userId
+  if (!mongoose.Types.ObjectId.isValid(userId)) {
+    return res.status(400).json({ message: 'Invalid userId' });
+  }
 
   try {
     const updatedData = {};
@@ -51,6 +57,34 @@ exports.loginUser = async (req, res) => {
     if (!isMatch) return res.status(400).json({ message: 'Invalid email or password' });
 
     res.json({ message: 'Login successful', userId: user._id });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// Fetch all users
+exports.getAllUsers = async (req, res) => {
+  try {
+    const users = await User.find({}, '-password'); // exclude password field
+    res.json(users);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// Delete user
+exports.deleteUser = async (req, res) => {
+  const { userId } = req.params;
+
+  // Validate userId
+  if (!mongoose.Types.ObjectId.isValid(userId)) {
+    return res.status(400).json({ message: 'Invalid userId' });
+  }
+
+  try {
+    const user = await User.findByIdAndDelete(userId);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    res.json({ message: 'User deleted' });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
